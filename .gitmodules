@@ -1,0 +1,3 @@
+[submodule "fft-rtl"]
+	path = fft-rtl
+	url = git@github.com:PhenomIIX6/fft-rtl.git

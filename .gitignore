@@ -1,0 +1,18 @@
+# Editors
+.vscode
+
+# QuestaSim
+work/
+transcript
+vsim.wlf
+vsim_stacktrace.vstf
+*.qdb
+*.qpg
+*.qtl
+
+# Icarus Verilog
+*.vvp
+*.vcd
+
+# Shared libraries
+*.so
