@@ -1,14 +1,20 @@
 module top #(
-    parameter FCLK = 50_000_000,
+    // ===== Clock / UART =====
+    parameter int FCLK            = 50_000_000,  // system clock frequency [Hz]
+    parameter int UART_BAUD       = 115_200,     // UART line baud rate
+    parameter int UART_OVERSAMPLE = 8,           // UART RX/TX oversampling factor
 
-    parameter UART_BAUD = 115_200,
+    // ===== FFT =====
+    parameter int N               = 512,  // FFT length (power of two)
+    parameter int WIDTH           = 16,   // sample width, per I/Q component [bits]
+    parameter int INTEGER_WIDTH   = 2,    // integer bits per component
+    parameter int ROUND           = 1,    // round (1) instead of truncate (0) after scaling
+    parameter int RADIX_OUT_SCALE = 1,    // 1/2 output scaling per radix-2 stage
+    parameter int SATURATION      = 1,    // saturate (1) instead of wrap (0) on overflow
 
-    parameter N = 512,
-    parameter WIDTH = 16,
-    parameter INTEGER_WIDTH = 2,
-
-    parameter UART_PRESCALE = FCLK / (UART_BAUD * 8),
-    parameter SAMPLE_WIDTH = 2*WIDTH
+    // ===== Derived =====
+    parameter int SAMPLE_WIDTH  = 2*WIDTH,                                  // I+Q combined width
+    parameter int UART_PRESCALE = FCLK / (UART_BAUD * UART_OVERSAMPLE)      // UART clock divider
 ) (
     input  logic clk,
     input  logic arst_n,
@@ -78,6 +84,7 @@ module top #(
     fft #(
         .N(N),
         .WIDTH(WIDTH),
+        .INTEGER_WIDTH(INTEGER_WIDTH),
         .ROUND(ROUND),
         .RADIX_OUT_SCALE(RADIX_OUT_SCALE),
         .SATURATION(SATURATION)

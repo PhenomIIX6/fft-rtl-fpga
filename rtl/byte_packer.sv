@@ -1,7 +1,7 @@
 module byte_packer #(
     parameter DATA_WIDTH = 32,
     
-    parameter BYTES_COUNT = int'($ceil(DATA_WIDTH / 8)),
+    parameter BYTES_COUNT = int'($ceil(real'(DATA_WIDTH) / 8)),
     parameter ADDRSIZE = $clog2(BYTES_COUNT+1)
 ) (
     input  logic clk,
@@ -39,9 +39,12 @@ module byte_packer #(
 
     genvar i;
     generate
-        for(i = 0; i < BYTES_COUNT; i = i + 1) begin
+        for(i = 0; i < BYTES_COUNT-1; i = i + 1) begin
             assign m_axis_tdata[i*8 +: 8] = mem[i];
         end
     endgenerate
+    
+    localparam LAST_WIDTH = ((DATA_WIDTH % 8) == 0) ? 8 : (DATA_WIDTH % 8);
+    assign m_axis_tdata[DATA_WIDTH-1 -: LAST_WIDTH] = mem[BYTES_COUNT-1][0 +: LAST_WIDTH];
 
 endmodule
