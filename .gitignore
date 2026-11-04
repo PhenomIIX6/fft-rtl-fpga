@@ -16,3 +16,9 @@ vsim_stacktrace.vstf
 
 # Shared libraries
 *.so
+
+# Host software and local verification tools
+__pycache__/
+*.py[cod]
+.venv/
+.tools/

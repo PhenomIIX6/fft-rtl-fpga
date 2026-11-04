@@ -1,0 +1,84 @@
+diff --git a/rtl/ram_export_unit.sv b/rtl/ram_export_unit.sv
+index 379070e..e7c1de2 100644
+--- a/rtl/ram_export_unit.sv
++++ b/rtl/ram_export_unit.sv
+@@ -19,11 +19,16 @@ module ram_export_unit #(
+     output logic [$clog2(N)-1:0] ram_rd_addr,
+     input  logic [SAMPLE_WIDTH-1:0] ram_rd_data
+ );
+-    logic [$clog2(N)-1:0] counter;
++    // Reserve FIFO space when issuing a synchronous RAM read, not when its
++    // result arrives one cycle later. Otherwise a read already in flight is
++    // discarded when the FIFO becomes full under AXIS backpressure.
++    logic [$clog2(N):0] issued_count;
++    logic [1:0] reserved;
++    logic read_pending;
++    logic issue_read;
+ 
+     logic wr;
+     logic rd;
+-    logic last;
+     logic empty;
+     logic full;
+ 
+@@ -41,40 +46,34 @@ module ram_export_unit #(
+         .data_out(m_tdata) 
+     );
+ 
+-    always_ff @(posedge clk or negedge arst_n) begin
+-        if (!arst_n) begin
+-            counter <= 'b0;
+-            wr <= 1'b0;
+-        end
+-        else if(done) begin
+-            counter <= 'b0;
+-            wr <= 1'b0;
+-        end 
+-        else if(!full && en && !last) begin
+-            counter <= counter + 1'b1;
+-            wr <= 1'b1;
+-        end
+-        else begin
+-            wr <= 1'b0;
+-        end
+-    end
+-
+-    assign ram_rd_addr = counter;
++    assign issue_read = en && (issued_count < N) && ((reserved < 2) || rd);
++    assign wr = read_pending;
++    assign ram_rd_addr = issued_count[$clog2(N)-1:0];
+ 
+     assign m_tvalid = !empty;
+     assign rd = (m_tvalid && m_tready);
+-    assign done = empty && last;
++    assign done = en && (issued_count == N) && (reserved == 0);
+ 
+     always_ff @(posedge clk or negedge arst_n) begin
+         if (!arst_n) begin
+-            last <= 1'b0;
++            issued_count <= '0;
++            reserved <= '0;
++            read_pending <= 1'b0;
+         end
+         else if (done) begin
+-            last <= 1'b0;
++            issued_count <= '0;
++            reserved <= '0;
++            read_pending <= 1'b0;
+         end
+-        else if (counter == (N - 1'b1)) begin
+-            last <= 1'b1;
++        else begin
++            read_pending <= issue_read;
++            if (issue_read) issued_count <= issued_count + 1'b1;
++            case ({issue_read, rd})
++                2'b10: reserved <= reserved + 1'b1;
++                2'b01: reserved <= reserved - 1'b1;
++                default: reserved <= reserved;
++            endcase
+         end
+     end
+ 
+-endmodule
+\ No newline at end of file
++endmodule
