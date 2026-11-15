@@ -16,8 +16,7 @@ module de2_115 #(
 
     // ================= Derived / miscellaneous =================
     parameter SAMPLE_WIDTH  = 2*WIDTH,                                // I+Q combined width
-    parameter UART_PRESCALE = CLK_FREQ / (UART_BAUD * UART_OVERSAMPLE),
-    parameter DEBOUNCE_BITS = 20                                      // reset release counter width
+    parameter UART_PRESCALE = CLK_FREQ / (UART_BAUD * UART_OVERSAMPLE)
 
 ) (
     input  logic        CLOCK_50,
@@ -27,20 +26,22 @@ module de2_115 #(
 
     logic sys_clk;
 
-    clock_pll pll_inst (
-        .clk_in (CLOCK_50),
-        .areset (~KEY[0]),
-        .clk_out(sys_clk),
-        .locked()
-    );
+    assign sys_clk = CLOCK_50;
+    /* clock_pll pll_inst ( */
+    /*     .clk_in (CLOCK_50), */
+    /*     .areset (~KEY[0]), */
+    /*     .clk_out(sys_clk), */
+    /*     .locked() */
+    /* ); */
 
-    logic rxd;
-    logic txd;
+    logic rxd, txd;
+    logic arst_n;
 
     assign rxd     = GPIO[0];   // external TX -> FPGA RXD
     assign GPIO[1] = txd;       // FPGA TXD   -> external RX
+    assign arst_n = KEY[0];
 
-   top #(
+    top #(
         .FCLK            (CLK_FREQ),
         .UART_BAUD       (UART_BAUD),
         .UART_OVERSAMPLE (UART_OVERSAMPLE),

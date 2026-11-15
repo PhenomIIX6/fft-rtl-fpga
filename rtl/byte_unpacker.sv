@@ -1,7 +1,7 @@
 module byte_unpacker #(
     parameter DATA_WIDTH = 32,
 
-    parameter BYTES_COUNT = int'($ceil(real'(DATA_WIDTH) / 8)),
+    parameter BYTES_COUNT = (DATA_WIDTH + 7) / 8,
     parameter ADDRSIZE = $clog2(BYTES_COUNT+1)
 ) (
     input  logic clk,
@@ -40,7 +40,7 @@ module byte_unpacker #(
 
     genvar i;
     generate
-        for(i = 0; i < BYTES_COUNT-1; i = i + 1) begin
+        for(i = 0; i < BYTES_COUNT-1; i = i + 1) begin : byte_unpacker_tdata
             always_ff @(posedge clk) begin
                 if (s_axis_tready && s_axis_tvalid) begin
                     mem[i] <= s_axis_tdata[i*8 +: 8];
