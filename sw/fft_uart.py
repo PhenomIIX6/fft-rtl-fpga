@@ -20,11 +20,14 @@ from uart_transport import ExchangeError, exchange_frame, list_ports, open_port
 SCHEMA = "fft-uart-capture-v1"
 
 
-def parser() -> argparse.ArgumentParser:
+def parser(*, performance: bool = False) -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     mode = p.add_mutually_exclusive_group()
     mode.add_argument("--port", help="UART device, e.g. COM3 or /dev/ttyUSB0")
-    mode.add_argument("--dry-run", action="store_true", help="software exercise only; no hardware validation")
+    if not performance:
+        mode.add_argument("--dry-run", action="store_true", help="software exercise only; no hardware validation")
+    else:
+        p.set_defaults(dry_run=False, discard_input=False)
     mode.add_argument("--replay", type=Path, help="verify received bytes in an existing JSON capture")
     mode.add_argument("--list-ports", action="store_true", help="list available UART ports and exit")
     p.add_argument("--n", "--N", type=int, help="FFT length (default 512)")
@@ -38,7 +41,8 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--twiddle-rom", type=Path, help="exact binary-text quarter-wave ROM used by the FPGA")
     p.add_argument("--baudrate", type=int, default=115200)
     p.add_argument("--timeout", type=float, help="whole-frame TX+RX deadline; default max(2s, 3*wire time+1s)")
-    p.add_argument("--discard-input", action="store_true", help="discard stale host RX bytes once on open; does not reset FPGA")
+    if not performance:
+        p.add_argument("--discard-input", action="store_true", help="discard stale host RX bytes once on open; does not reset FPGA")
     p.add_argument("--frames", type=int, default=1)
     p.add_argument("--seed", type=int, default=1)
     p.add_argument("--pattern", choices=("random", "zero", "impulse", "dc", "tone"), default="random")

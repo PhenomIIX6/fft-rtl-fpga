@@ -33,8 +33,9 @@ class Exchange:
 def exchange_frame(
     port, payload: bytes, timeout: float,
     clock: Callable[[], float] = time.perf_counter,
+    response_size: int | None = None,
 ) -> Exchange:
-    """Write all bytes, then read exactly one response of the same length.
+    """Write all bytes, then read one response (same length unless specified).
 
 One deadline covers both directions. No flush() is used: it has no portable
 deadline in pySerial; receiving a complete response proves transmission ended.
@@ -42,6 +43,9 @@ Buffered response bytes may already arrive while the final write completes.
 """
     if not payload or not math.isfinite(timeout) or timeout <= 0:
         raise ValueError("payload must be nonempty and timeout must be finite and positive")
+    response_size = len(payload) if response_size is None else response_size
+    if response_size <= 0:
+        raise ValueError("response_size must be positive")
     if port.in_waiting:
         raise ExchangeError("unexpected buffered UART bytes before frame")
     start = clock()
@@ -62,15 +66,15 @@ Buffered response bytes may already arrive while the final write completes.
             if not count:
                 time.sleep(min(0.001, remaining))
         written = clock()
-        while len(received) < len(payload):
+        while len(received) < response_size:
             remaining = deadline - clock()
             if remaining <= 0:
                 raise ExchangeError(
-                    f"RX timeout: received {len(received)}/{len(payload)} bytes",
+                    f"RX timeout: received {len(received)}/{response_size} bytes",
                     bytes(received), sent,
                 )
             port.timeout = min(0.1, remaining)
-            chunk = port.read(len(payload) - len(received))
+            chunk = port.read(response_size - len(received))
             received.extend(chunk)
         elapsed = clock() - start
         if port.in_waiting:
